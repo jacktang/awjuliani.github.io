@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<!-- <button class="button">Click</button> -->
+<div></div>
+<svg width="1200" height="1200">
+</svg>
+<script>
+//d3.select("button").on("click", function() {
+	var panel = d3.select("svg");
+	d3.csv("embeddingsCSV.csv", function(error, data) {
+	  panel.selectAll("circle").data(data.slice(0,100)).enter().append("circle").attr("cx", function(d) {return (d.X * 50) + 600}).attr("r",10)
+	  .attr("cy",function(d) {return (d.Y * 50) + 600}).attr("fill", "red")
+	  .on("mouseover", function() {
+	d3.select(this).transition().attr("r",20)}).on("mouseleave", function() {
+	d3.select(this).transition().attr("r",10);
+});
+	  panel.selectAll("text").data(data.slice(0,100)).enter().append("text").text(function(d) {return d.Word}).attr("x", function(d) {return (d.X * 50) + 585})
+	  .attr("y", function(d) {return (d.Y * 50)+ 620}).attr("dy", ".35em");
+	});
+//});
+
+d3.selectAll("circle").on("mouseover", function() {
+	d3.select(this).transition().attr("r",20);
+});
+
+d3.selectAll("circle").on("mouseleave", function() {
+	d3.select(this).transition().attr("r",10);
+});
+</script>
