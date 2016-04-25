@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<script src="d3.v3.min.js" charset="utf-8"></script>
+<style>
+.bookBlock {
+	padding-top:75px; 
+	padding-bottom:75px;
+	min-height:300px;
+	overflow: auto;
+}
+.blockHolder {
+	padding-left:50px; 
+	overflow: auto; 
+	padding-right:50px; 
+	max-width:800px; 
+	min-width:800px; 
+	float:left;
+}
+.blockText {
+	float:left 
+	width:150px; 
+	overflow:auto; 
+	display:absolute;
+}
+h1 {
+	font-family:'Helvetica';
+}
+h2 {
+	font-family:'Helvetica';
+}
+.textExample {
+	font-family:'Helvetica';
+	margin-right:20px;"
+}
+</style>
+
+<body>
+
+</body>
+
+<script>
+	
+	var bookList;
+	d3.csv("master.csv",function(error,data) {
+		bookList = data;
+		var topContainer = d3.select("body");
+		var bookFill = topContainer.selectAll("bookBlock").data(bookList);
+		var bookMom = bookFill.enter().append("div").classed("bookBlock",true);
+				
+		var fillBlocks = bookMom.append("div").classed("blockHolder",true);
+		d3.selectAll(".blockHolder").each(function(d,i) {loadSquares(d3.select(this),d)});
+				
+		var fillMe = bookMom.append("div").classed("blockText",true);
+			fillMe.append("h1").html(function(d) {return d.Title});
+			fillMe.append("h2").html(function(d) {return d.Author});
+			fillMe.append("h3").classed("textExample",true);
+		
+
+		});
+	
+	
+	function loadSquares(blockHolder,data) {
+		console.log(data.File);
+		var myData;
+		
+		var fillBlocks = blockHolder;
+		d3.csv(data.File, function(error,data1) {
+		myData = data1;
+		
+			fillBlocks.selectAll("div").data(myData).enter().append("div")
+				.classed("block",true)
+				.style("float","left")
+				.style("background-color",function(d) {return giveColor(d)})
+				.style("height","10px")
+				.style("width","10px");
+				
+			d3.selectAll(".block").on("mouseover", function() {
+				d3.select(this).style("background-color","white");
+				var displayTxt = d3.select(this).data()[0]["Text"];
+				var colorToSet = giveColor(d3.select(this).data()[0]);
+				d3.select(this.parentNode.parentNode).select(".textExample").html("..."+displayTxt.slice(0,200)+"...")
+					.style("color", colorToSet);
+    			
+    		});
+    		
+    		d3.selectAll(".block").on("mouseleave", function() {
+    			d3.select(this).transition().delay(100).duration(500).style("background-color",function(d) {return giveColor(d)});
+    			d3.select(this.parentNode.parentNode).select(".textExample").html("");
+    		});
+				
+			});
+	}
+        
+    function giveColor(d) {
+    	if (d.Sentiment == 1) {
+    		return "blue";
+    	}
+    	else { return "red";}
+    }
+
+</script>
