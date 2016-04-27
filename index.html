@@ -1,77 +1,124 @@
 <!DOCTYPE html>
 <script src="//d3js.org/d3.v3.min.js" charset="utf-8"></script>
 <body background="bg.gif">
-<input type="text" id="wordsN" name="wordsKnown" value="100"></input>
-<button class="button">Click</button>
-<div></div>
-<svg width="1400" height="700">
-    <text class="definition" y="20" x="20" dy="0.35em" fill="white">Mouse over node to get definition</text>
+<div>
+<svg align="center" display="block" width="1400" height="800" style="margin:auto;">
+	<g class="nodeHolder"></g>
+    <text class="definition" y="71" x="701" text-anchor="middle" dy="0.35em" font-family="Helvetica" fill="grey">Hover over a word to get the definition</text>
+    <text class="definition" y="70" x="700" text-anchor="middle" dy="0.35em" font-family="Helvetica" fill="white">Hover over a word to get the definition</text>
+    <text class="NumberHead" y="41" x="702" text-anchor="middle" fill="grey" font-family="Helvetica" font-size="35">Hi Arthur, you've learned 100 words so far!</text>
+    <text class="NumberHead" y="40" x="700" text-anchor="middle" fill="white" font-family="Helvetica" font-size="35">Hi Arthur, you've learned 100 words so far!</text>
 </svg>
+</div>
 </body>
 <script>
-	var panel = d3.select("svg");
-    var maxWords = document.getElementById('wordsN').value;
-    var numWords = 1;
+	var panel = d3.select(".nodeHolder");
+    var maxWords = 150;
     var gData;
+	var nodesData;
+    var nodesGoal;
+    var force;
+    
+    d3.selectAll(".NumberHead").html("Hi Arthur, you've learned "+maxWords+" words so far!");
+    
 	d3.csv("embeddingsCSV.csv", function(error, data) {
 			gData = data;
+			
+			nodesData = data.slice(0,maxWords).map(function(i) {
+	  			return {index: i.INDEX, word: i.WORD, definition: i.DEFINITION};
+			});
+			
+			nodesGoal = data.slice(0,maxWords).map(function(d) {
+			  return {index: parseInt(d.INDEX), x: (d.X * 80) + 700, y:(d.Y * 40) + 350};
+			});
+			
+			    
+		force = d3.layout.force()
+				.nodes(nodesData)
+				.size([1400, 700])
+				.charge(-200)
+				.chargeDistance(200)
+				.on("tick", tick)
+				.start();
+				
+			updateCircles(nodesData, force);
         });
 
-    d3.select("button").on("click", function() {
-    		numWords = -1;
-    		maxWords = document.getElementById('wordsN').value;
-        });
-        
-    setInterval(function() {
-        if (numWords < maxWords){
-        	numWords = numWords + 1;
-        	}
-        updateCircles(gData);
-		}, 30);
+function updateCircles(nodesData, force){
 
-function updateCircles(gData){
-		var nodes = panel.selectAll("g").data(gData.slice(0,numWords));
+		var nodes = panel.selectAll("g").data(nodesData);
 		var nodeMom = nodes.enter().append("g");
-		nodeMom.append("circle").attr("fill", "white")
-			.attr("fill-opacity",0.0)
+		
+		nodeMom.append("circle")
+			.attr("fill", "white")
+			.attr("fill-opacity",0.8)
 			.attr("stroke","grey")
-			.attr("stroke-opacity",0.0)
+			.attr("stroke-opacity",0.8)
 			.attr("stroke-width",2)
-           .attr("r",10).attr("cy",Math.random() * 350).attr("cx",Math.random() * 700)
-           .transition().duration(1000)
-           .attr("fill-opacity",0.6)
-           .attr("stroke-opacity",0.6)
-           .attr("cy",function(d) {return (d.Y * 30) + 350})
-           .attr("cx", function(d) {return (d.X * 50) + 700})
-        nodeMom.append("text").text(function(d) {return d.WORD})
-           .attr("x",Math.random() * 700).attr("y",Math.random() * 350)
+            .attr("r",function(d) {return d.word.length * 10 + 2})
+            .attr("cy",function(d) {return d.y;})
+            .attr("cx",function(d) {return d.x;})
+            .call(force.drag)
+
+        nodeMom.append("text")
+        	.attr("class","wordTxt")
+        	.text(function(d) {return d.word})
+           .attr("x",Math.random() * 1400).attr("y",Math.random() * 700)
            .attr("fill-opacity",0.0)
-           .attr("fill","white")
-           .transition().duration(1000)
-           .attr("fill-opacity",1.0)
-           .attr("x", function(d) {return (d.X * 50) + 685})
-           .attr("y", function(d) {return (d.Y * 30)+ 370}).attr("dy", ".35em");
+           .attr("fill","black")
+           .attr("fill-opacity",0.5)
+           .attr("text-anchor","middle")
+           .attr("x", function(d) {return (d.x * 50) + 685})
+           .attr("y", function(d) {return (d.y * 30)+ 370}).attr("dy", ".35em")
+           .call(force.drag);
            
     	nodes.on("mouseover", function() {
-			var definition = d3.select(this).data()[0]["DEFINITION"];
-			d3.select(".definition").text(definition);
+			var definition = d3.select(this).data()[0]["definition"];
+			definition = definition.replace(/\//g," ~ ");
+			d3.selectAll(".definition").text(definition);
 			d3.select(this).select("circle").transition()
-			.attr("r",20)
+			.attr("r",function(d) {return d.word.length * 15})
 			.attr("fill-opacity",0.9)
-			.attr("stroke-opacity",1)
-			;});
+			.attr("stroke-opacity",1);
+			d3.select(this).select("text").transition()
+			.attr("fill-opacity",1.0);
+			});
         nodes.on("mouseleave", function() {
-            d3.select(".definition").text("Mouse over node to get definition");
+            d3.selectAll(".definition").text("Hover over a word to get the definition");
             d3.select(this).select("circle").transition()
-            .attr("r",10)
-            .attr("fill-opacity",0.6)
-            .attr("stroke-opacity",0.5)
-            ;
+            .attr("r",function(d) {return d.word.length * 10 + 2})
+            .attr("fill-opacity",0.8)
+            .attr("stroke-opacity",0.8);
+            d3.select(this).select("text").transition()
+			.attr("fill-opacity",0.5);
             });
                 
         //nodes.exit().select("circle").transition().attr("r",0).remove();
 		//nodes.exit().select("text").remove();
 		nodes.exit().remove();
 }
+
+	   function tick(e) {
+		  var k = .1 * e.alpha;
+
+		  // Push nodes toward their designated focus.
+		  nodesData.forEach(function(o, i) {
+			o.y += (nodesGoal[o.index].y - o.y) * k;
+			o.x += (nodesGoal[o.index].x - o.x) * k;
+		  });
+
+		  	panel.selectAll("circle")
+			  .attr("cx", function(d) { return d.x; })
+			  .attr("cy", function(d) { return d.y; });
+			  
+			panel.selectAll(".wordTxt")
+			  .attr("x", function(d) { return d.x; })
+			  .attr("y", function(d) { return d.y; });
+		}
+		
+		
+	setInterval(function() {
+		force.stop()
+	}, 5000);
 
 </script>
