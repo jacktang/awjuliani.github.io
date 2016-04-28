@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<head>
+	<title>Lingwave Progress</title>
+</head>
+<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+<script src="//d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+<style> 
+body {
+	background-color:white;
+	height:100%;
+	font-family:"Helvetica";
+}
+html {
+	width:100%;
+	height:100%;
+}
+
+.d3-tip {
+  line-height: 1;
+  font-weight: bold;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border-radius: 2px;
+  font-family:"Helvetica";
+}
+
+/* Creates a small triangle extender for the tooltip */
+.d3-tip:after {
+  box-sizing: border-box;
+  display: inline;
+  font-size: 10px;
+  width: 100%;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.8);
+  content: "\25BC";
+  position: absolute;
+  text-align: center;
+  font-family:"Helvetica";
+}
+
+/* Style northward tooltips differently */
+.d3-tip.n:after {
+  margin: -1px 0 0 0;
+  top: 100%;
+  left: 0;
+}
+.divBody {
+	padding-top:30px;
+	padding-left:75px;
+	padding-bottom:300px;
+}
+
+</style>
+<html width="100%" height="100%">
+<body onresize="updateWindow()" width="100%" min-height="100%" position="absolute">
+<svg align="center" display="block" width="102%" height="650px" preserveAspectRatio="none" style="margin-top:-10; margin-left:-10;">
+	<image xlink:href="bg.gif" x="0" y="0" height="100%" width="100%" preserveAspectRatio="none"/>
+	<g class="nodeHolder"></g>
+    <a xlink:href="http://lingwave.com/stay-informed/">
+    	<image xlink:href="logo.png" x="38%" y="30px" height="47px" width="267px"/>
+    </a>
+
+</svg>
+<div class="divBody col-md-8">
+<h1>Welcome back, Arthur</h1>
+You have learned <span class="label label-danger">5</span> new words in the past week.
+<br><br>
+<div class="progress" height="50px">
+  <div class="progress-bar progress-bar-danger" role="progressbar" aria-valuenow="70"
+  aria-valuemin="0" aria-valuemax="100" style="width:70%">
+    Comprehension
+  </div>
+</div>
+<button type="button" class="btn btn-primary btn-lg btn-danger">Explore Stories</button>
+<button type="button" class="btn btn-primary btn-lg btn-danger">Practice Words & Grammar</button>
+<button type="button" class="btn btn-primary btn-lg btn-danger">Find Media</button>
+
+</div>
+<div class="col-md-12" style="text-align:center">Lingwave (2016)</div>
+</body>
+</html>
+<script>
+	var panel = d3.select(".nodeHolder");
+    var maxWords = 200;
+    var gData;
+	var nodesData;
+    var nodesGoal;
+    var force;
+    var embeddingsExtended = false;
+    
+    d3.select("svg").on("click", function() {
+    	if (embeddingsExtended == false) {
+    		d3.select(this).style("height","150%");
+    		embeddingsExtended = true;
+    	}
+    	else {
+    		d3.select(this).style("height","650px");
+    		embeddingsExtended = false;
+    	}
+    	updateWindow();
+    });
+    
+    d3.selection.prototype.moveToFront = function() {
+	  return this.each(function(){
+	  this.parentNode.appendChild(this);
+	  });
+	};
+	
+	function updateWindow() {
+		if (gData != undefined) {
+			windowWidth = parseInt(d3.select("svg").style("width"));
+			windowHeight = parseInt(d3.select("svg").style("height"));
+			nodesGoal = gData.slice(0,maxWords).map(function(d) {
+			  return {index: parseInt(d.INDEX), x: (d.X * windowWidth/15) + windowWidth/2, y:(d.Y * windowHeight/18) + windowHeight/2};
+			});
+			force.size([windowWidth,700]);
+			force.start();
+		}
+	}
+
+	var tip = d3.tip()
+	  .attr('class', 'd3-tip')
+	  .offset([-10, 0])
+	  .html(function(d) {
+		return "<span style='font-size:33px;'>" + d.word + "</span><br>" + "<span style='color:white '>" + d.definition.replace(/\//g," <br> ") + "</span>";
+	  })
+
+	var windowWidth = parseInt(d3.select("svg").style("width"));
+	var windowHeight = parseInt(d3.select("svg").style("height"));
+	d3.select(".progress-bar").attr("aria-valuenow",maxWords/10).style("width",String(maxWords/10)+"%").html(String(maxWords/10)+"%");
+    
+    d3.selectAll("h1").html("Welcome back Arthur, you've learned "+maxWords+" words so far!");
+    
+	d3.csv("embeddingsCSV.csv", function(error, data) {
+			gData = data;
+			
+			nodesData = gData.slice(0,maxWords).map(function(i) {
+	  			return {index: i.INDEX, word: i.WORD, definition: i.DEFINITION};
+			});
+			
+			nodesGoal = gData.slice(0,maxWords).map(function(d) {
+			  return {index: parseInt(d.INDEX), x: (d.X * windowWidth/15) + windowWidth/2, y:(d.Y * windowHeight/18) + windowHeight/2};
+			});
+			
+			    
+		force = d3.layout.force()
+				.nodes(nodesData)
+				.size([windowWidth, 700])
+				.charge(-500)
+				.chargeDistance(50)
+				.on("tick", tick)
+				.start();
+				
+			updateCircles(nodesData, force);
+        });
+
+function updateCircles(nodesData, force){
+
+		panel.call(tip);
+		var nodes = panel.selectAll("g").data(nodesData);
+		var nodeMom = nodes.enter().append("g");
+		
+		nodeMom.append("circle")
+			.attr("fill", "white")
+			.attr("fill-opacity",0.8)
+			.attr("stroke","grey")
+			.attr("stroke-opacity",0.8)
+			.attr("stroke-width",2)
+            .attr("r",function(d) {return d.word.length * 10 + 2})
+            .attr("cy",function(d) {return d.y;})
+            .attr("cx",function(d) {return d.x;})
+            .call(force.drag)
+            .on('mouseover', tip.show)
+            .on('mouseout', tip.hide);;
+
+        nodeMom.append("text")
+        	.attr("class","wordTxt")
+        	.text(function(d) {return d.word})
+           .attr("fill-opacity",0.0)
+           .attr("fill","black")
+           .attr("fill-opacity",0.7)
+           .attr("text-anchor","middle")
+           .attr("x", function(d) {return (d.x * 50) + 685})
+           .attr("y", function(d) {return (d.y * 30)+ 370}).attr("dy", ".35em")
+           .call(force.drag)
+            .on('mouseover', tip.show)
+            .on('mouseout', tip.hide);
+           
+    	nodes.on("mouseover", function() {
+			//var definition = d3.select(this).data()[0]["definition"];
+			//definition = definition.replace(/\//g,"  *  ");
+			//d3.selectAll(".definition").text(definition);
+			d3.select(this).select("circle").transition()
+			.attr("r",function(d) {return d.word.length * 10 + 8})
+			.attr("fill-opacity",1.0)
+			.attr("stroke","indianred")
+			.attr("stroke-opacity",.8);
+			var sel = d3.select(this);
+			sel.attr("cursor","default");
+			sel.select("text").transition()
+			.attr("fill-opacity",1.0);
+			sel.moveToFront();
+			});
+        nodes.on("mouseleave", function() {
+            //d3.selectAll(".definition").text("Hover over a word to get the definition");
+            d3.select(this).select("circle").transition()
+            .attr("r",function(d) {return d.word.length * 10 + 2})
+            .attr("fill-opacity",0.8)
+            .attr("stroke","grey")
+            .attr("stroke-opacity",0.8);
+            d3.select(this).select("text").transition()
+			.attr("fill-opacity",0.7);
+            });
+                
+		nodes.exit().remove();
+}
+
+	   function tick(e) {
+		  var k = .1 * e.alpha;
+
+		  // Push nodes toward their designated focus.
+		  nodesData.forEach(function(o, i) {
+			o.y += (nodesGoal[o.index].y - o.y) * k;
+			o.x += (nodesGoal[o.index].x - o.x) * k;
+		  });
+
+		  	panel.selectAll("circle")
+			  .attr("cx", function(d) { return d.x; })
+			  .attr("cy", function(d) { return d.y; });
+			  
+			panel.selectAll(".wordTxt")
+			  .attr("x", function(d) { return d.x; })
+			  .attr("y", function(d) { return d.y; });
+		}
+		
+		
+	setInterval(function() {
+		force.stop()
+	}, 5000);
+	
+	
+
+</script>
