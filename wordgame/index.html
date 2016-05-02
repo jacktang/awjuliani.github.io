@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<head>
+	<title>Embedding Word Game</title>
+</head>
+<script src="d3.v3.min.js" charset="utf-8"></script>
+<style> 
+body {
+	background-color:white;
+	height:100%;
+	font-family:"Helvetica";
+}
+html {
+	width:100%;
+	height:100%;
+}
+
+.divBody {
+	padding-top:30px;
+	padding-left:75px;
+	padding-bottom:300px;
+}
+
+</style>
+<html width="100%" height="100%">
+<body onresize="updateWindow()" width="100%" min-height="100%" position="absolute">
+<input type="text" id="gameText" value="the cat is nice">
+<button>Update</button>
+<svg align="center" display="block" width="102%" height="100%" preserveAspectRatio="none" style="margin-top:-10; margin-left:-10;">
+	<g class="nodeHolder"></g>
+</svg>
+</body>
+</html>
+<script>
+	var panel = d3.select(".nodeHolder");
+    var gData;
+	var nodesData;
+    var nodesGoal;
+    var force;    
+    var wordString = d3.select("#gameText").attr("value");
+    var wordList = wordString.split(" ");
+
+    
+    d3.selection.prototype.moveToFront = function() {
+	  return this.each(function(){
+	  this.parentNode.appendChild(this);
+	  });
+	};
+	
+	function updateWindow() {
+		if (gData != undefined) {
+			windowWidth = parseInt(d3.select("svg").style("width"));
+			windowHeight = parseInt(d3.select("svg").style("height"));
+			nodesGoal = gData.map(function(d) {
+			  return {index: parseInt(d.INDEX), x: (d.X * windowWidth/15) + windowWidth/2, y:(d.Y * windowHeight/18) + windowHeight/2};
+			});
+			force.size([windowWidth,windowHeight]);
+			force.start();
+		}
+	}
+
+	var windowWidth = parseInt(d3.select("svg").style("width"));
+	var windowHeight = parseInt(d3.select("svg").style("height"));    
+    
+	d3.csv("engEmbed.csv", function(error, data) {
+			gData = data;
+			
+			nodesData = gData.map(function(i) {
+	  			return {index: i.INDEX, word: i.WORD};
+			});
+			
+			nodesGoal = gData.map(function(d) {
+			  return {index: parseInt(d.INDEX), x: (d.X * windowWidth/15) + windowWidth/2, y:(d.Y * windowHeight/18) + windowHeight/2};
+			});
+			
+			    
+		force = d3.layout.force()
+				.nodes(nodesData)
+				.size([windowWidth, windowWidth])
+				.charge(0)
+				.chargeDistance(0)
+				.on("tick", tick)
+				.start();
+				
+			updateCircles(nodesData, force);
+        });
+
+function updateCircles(nodesData, force){
+		var nodesDataUse = nodesData.filter(function(node) {return wordList.indexOf(node.word) >= 0 }) 
+		var nodes = panel.selectAll("g").data(nodesDataUse);
+		var nodeMom = nodes.enter().append("g");
+		nodeMom.append("rect")
+			.attr("fill", "white")
+			.attr("fill-opacity",0.8)
+			.attr("stroke","grey")
+			.attr("stroke-opacity",0.8)
+			.attr("stroke-width",2)
+            .attr("width",function(d) {return d.word.length * 10 + 2})
+            .attr("height","20px")
+            .attr("y",function(d) {return d.y;})
+            .attr("x",function(d) {return d.x;})
+            .call(force.drag);
+
+        nodeMom.append("text")
+        	.attr("class","wordTxt")
+        	.text(function(d) {return d.word})
+           .attr("fill-opacity",0.0)
+           .attr("fill","black")
+           .attr("fill-opacity",0.7)
+           .attr("text-anchor","middle")
+           .attr("x", function(d) {return d.x + d.word.length * 4 + 2; })
+           .attr("y", function(d) {return d.y + 10; })
+           .attr("dy", ".35em")
+           .call(force.drag);
+                
+		nodes.exit().remove();
+}
+
+	   function tick(e) {
+		  var k = .1 * e.alpha;
+
+		  // Push nodes toward their designated focus.
+		  nodesData.forEach(function(o, i) {
+			o.y += (nodesGoal[o.index].y - o.y) * k;
+			o.x += (nodesGoal[o.index].x - o.x) * k;
+		  });
+
+		  	panel.selectAll("rect")
+			  .attr("x", function(d) { return d.x; })
+			  .attr("y", function(d) { return d.y; });
+			  
+			panel.selectAll(".wordTxt")
+			  .attr("x", function(d) { return d.x + d.word.length * 4 + 2; })
+			  .attr("y", function(d) { return d.y + 10; });
+		}
+		
+		    
+    d3.select("button").on("click", function() {
+    	wordString = document.getElementById("gameText").value;
+    	wordList = wordString.split(" ");
+    	if (wordList.length > 1) {
+    		updateCircles(nodesData,force);
+    		}
+    	});
+		
+		
+	setInterval(function() {
+		//force.stop()
+	}, 5000);
+	
+	
+
+</script>
