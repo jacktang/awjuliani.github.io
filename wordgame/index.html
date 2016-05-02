@@ -20,11 +20,16 @@ html {
 	padding-bottom:300px;
 }
 
+
+.link {
+    stroke-width: 2px;
+}
+
 </style>
 <html width="100%" height="100%">
 <body onresize="updateWindow()" width="100%" min-height="100%" position="absolute">
-<input type="text" id="gameText" value="the cat is nice">
-<button>Update</button>
+<input type="text" size="50" height="50px" style="font-size:22pt;" id="gameText" value="my car can fly to the moon and back" onkeydown="if (event.keyCode == 13) document.getElementById('btn').click()">
+<button id="btn">Update</button>
 <svg align="center" display="block" width="102%" height="100%" preserveAspectRatio="none" style="margin-top:-10; margin-left:-10;">
 	<g class="nodeHolder"></g>
 </svg>
@@ -38,7 +43,7 @@ html {
     var force;    
     var wordString = d3.select("#gameText").attr("value");
     var wordList = wordString.split(" ");
-
+	var nodesDataUse;
     
     d3.selection.prototype.moveToFront = function() {
 	  return this.each(function(){
@@ -64,6 +69,8 @@ html {
 	d3.csv("engEmbed.csv", function(error, data) {
 			gData = data;
 			
+			
+			
 			nodesData = gData.map(function(i) {
 	  			return {index: i.INDEX, word: i.WORD};
 			});
@@ -72,20 +79,37 @@ html {
 			  return {index: parseInt(d.INDEX), x: (d.X * windowWidth/15) + windowWidth/2, y:(d.Y * windowHeight/18) + windowHeight/2};
 			});
 			
-			    
-		force = d3.layout.force()
+			force = d3.layout.force()
 				.nodes(nodesData)
 				.size([windowWidth, windowWidth])
 				.charge(0)
 				.chargeDistance(0)
+				.linkStrength(0.01)
 				.on("tick", tick)
 				.start();
-				
-			updateCircles(nodesData, force);
+			
+			nodesDataUse = nodesData.filter(function(node) {return wordList.indexOf(node.word) >= 0 });
+			
+			nodesDataUse = nodesDataUse.sort(function(a,b){
+  				return wordList.indexOf(a.word) < wordList.indexOf(b.word) ? -1 : 1;
+			});
+			var myLinks = getLinks(nodesDataUse);
+			
+			force.links(myLinks);
+								
+			updateCircles(nodesData, force, myLinks);
         });
 
-function updateCircles(nodesData, force){
-		var nodesDataUse = nodesData.filter(function(node) {return wordList.indexOf(node.word) >= 0 }) 
+function updateCircles(nodesData, force, myLinks){
+
+				           
+        var link = panel.selectAll('.link')
+			.data(myLinks)
+			.enter().append('line')
+			.attr('class', 'link')
+			.attr("stroke",function(d) {return "hsl(120,"+(100-(d.value*20))+"%,50%)"});
+
+		panel.selectAll("g").remove();
 		var nodes = panel.selectAll("g").data(nodesDataUse);
 		var nodeMom = nodes.enter().append("g");
 		nodeMom.append("rect")
@@ -103,7 +127,6 @@ function updateCircles(nodesData, force){
         nodeMom.append("text")
         	.attr("class","wordTxt")
         	.text(function(d) {return d.word})
-           .attr("fill-opacity",0.0)
            .attr("fill","black")
            .attr("fill-opacity",0.7)
            .attr("text-anchor","middle")
@@ -111,26 +134,37 @@ function updateCircles(nodesData, force){
            .attr("y", function(d) {return d.y + 10; })
            .attr("dy", ".35em")
            .call(force.drag);
+
+
                 
 		nodes.exit().remove();
+		force.start();
 }
 
 	   function tick(e) {
 		  var k = .1 * e.alpha;
 
 		  // Push nodes toward their designated focus.
-		  nodesData.forEach(function(o, i) {
+		  nodesDataUse.forEach(function(o, i) {
 			o.y += (nodesGoal[o.index].y - o.y) * k;
 			o.x += (nodesGoal[o.index].x - o.x) * k;
 		  });
 
+
 		  	panel.selectAll("rect")
 			  .attr("x", function(d) { return d.x; })
+			  .attr("fill","white")
 			  .attr("y", function(d) { return d.y; });
 			  
 			panel.selectAll(".wordTxt")
 			  .attr("x", function(d) { return d.x + d.word.length * 4 + 2; })
 			  .attr("y", function(d) { return d.y + 10; });
+			  
+			panel.selectAll(".link")
+				.attr('x1', function(d) { return d.source.x; })
+				.attr('y1', function(d) { return d.source.y; })
+				.attr('x2', function(d) { return d.target.x; })
+				.attr('y2', function(d) { return d.target.y; });
 		}
 		
 		    
@@ -138,10 +172,24 @@ function updateCircles(nodesData, force){
     	wordString = document.getElementById("gameText").value;
     	wordList = wordString.split(" ");
     	if (wordList.length > 1) {
-    		updateCircles(nodesData,force);
+    		nodesDataUse = nodesData.filter(function(node) {return wordList.indexOf(node.word) >= 0 });
+    		nodesDataUse = nodesDataUse.sort(function(a,b){
+  				return wordList.indexOf(a.word) < wordList.indexOf(b.word) ? -1 : 1;
+			});
+    		var myLinks = getLinks(nodesDataUse);
+    		force.links(myLinks);
+    		force.start();
+    		updateCircles(nodesData,force, myLinks);
     		}
     	});
 		
+		function getLinks(nodesDataUse) {
+			var Links = [];
+			for (i = 0; i < nodesDataUse.length -1; i++) { 
+    			Links.push({source: nodesDataUse[i].index, target: nodesDataUse[i+1].index,value:i});
+			}
+			return Links;
+		}
 		
 	setInterval(function() {
 		//force.stop()
