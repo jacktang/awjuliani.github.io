@@ -20,17 +20,21 @@ html {
 	padding-bottom:300px;
 }
 
+.wordTxt {
+	font-size:20px;
+}
 
 .link {
-    stroke-width: 2px;
+	stroke-width:2px;
 }
 
 </style>
 <html width="100%" height="100%">
 <body onresize="updateWindow()" width="100%" min-height="100%" position="absolute">
-<input type="text" size="50" height="50px" style="font-size:22pt;" id="gameText" value="my car can fly to the moon and back" onkeydown="if (event.keyCode == 13) document.getElementById('btn').click()">
-<button id="btn">Update</button>
-<svg align="center" display="block" width="102%" height="100%" preserveAspectRatio="none" style="margin-top:-10; margin-left:-10;">
+<div style="margin: 0 auto; width:80%;">
+<input type="text" style="font-size:22pt; text-align:center; width:100%;" id="gameText" value="my car can fly to the moon and back" onkeydown="if (event.keyCode == 32 || event.keyCode == 13) loadNewSentence()" autofocus>
+</div>
+<svg align="center" display="block" width="102%" height="95%" preserveAspectRatio="none" style="margin-top:-10; margin-left:-10;">
 	<g class="nodeHolder"></g>
 </svg>
 </body>
@@ -40,10 +44,11 @@ html {
     var gData;
 	var nodesData;
     var nodesGoal;
-    var force;    
+    var force = d3.layout.force();
     var wordString = d3.select("#gameText").attr("value");
-    var wordList = wordString.split(" ");
+    var wordList = wordList = wordString.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").split(" ");
 	var nodesDataUse;
+	var nodeGoalUse;
     
     d3.selection.prototype.moveToFront = function() {
 	  return this.each(function(){
@@ -56,10 +61,13 @@ html {
 			windowWidth = parseInt(d3.select("svg").style("width"));
 			windowHeight = parseInt(d3.select("svg").style("height"));
 			nodesGoal = gData.map(function(d) {
-			  return {index: parseInt(d.INDEX), x: (d.X * windowWidth/15) + windowWidth/2, y:(d.Y * windowHeight/18) + windowHeight/2};
+			  return {index: parseInt(d.INDEX), x: (d.X * windowWidth/15) + windowWidth/2, y:(d.Y * windowHeight/18) + windowHeight/2, word: d.WORD};
 			});
-			force.size([windowWidth,windowHeight]);
-			force.start();
+					
+		nodesGoalUse = makeNodeList(nodesGoal);
+			
+		force.size([windowWidth,windowHeight]);
+		force.start();
 		}
 	}
 
@@ -69,68 +77,91 @@ html {
 	d3.csv("engEmbed.csv", function(error, data) {
 			gData = data;
 			
-			
-			
 			nodesData = gData.map(function(i) {
 	  			return {index: i.INDEX, word: i.WORD};
 			});
 			
 			nodesGoal = gData.map(function(d) {
-			  return {index: parseInt(d.INDEX), x: (d.X * windowWidth/15) + windowWidth/2, y:(d.Y * windowHeight/18) + windowHeight/2};
+			  return {index: parseInt(d.INDEX), x: (d.X * windowWidth/15) + windowWidth/2, y:(d.Y * windowHeight/18) + windowHeight/2, word: d.WORD};
 			});
 			
-			force = d3.layout.force()
-				.nodes(nodesData)
-				.size([windowWidth, windowWidth])
-				.charge(0)
-				.chargeDistance(0)
-				.linkStrength(0.01)
-				.on("tick", tick)
-				.start();
+			var myLinks = updateNodeData();		
 			
-			nodesDataUse = nodesData.filter(function(node) {return wordList.indexOf(node.word) >= 0 });
-			
-			nodesDataUse = nodesDataUse.sort(function(a,b){
-  				return wordList.indexOf(a.word) < wordList.indexOf(b.word) ? -1 : 1;
-			});
-			var myLinks = getLinks(nodesDataUse);
-			
-			force.links(myLinks);
-								
 			updateCircles(nodesData, force, myLinks);
+			updateWindow();
         });
 
-function updateCircles(nodesData, force, myLinks){
+function loadNewSentence() {
+	wordString = document.getElementById("gameText").value;
+	wordList = wordString.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").split(" ");
+	if (wordList.length > 0) {
+		var myLinks = updateNodeData();
+		updateCircles(nodesData,force, myLinks);
+		}
+}
 
+function updateNodeData() {
+		nodesDataUse = makeNodeList(nodesData);
+		nodesGoalUse = makeNodeList(nodesGoal);
+		
+		force = d3.layout.force()
+			.nodes(nodesDataUse)
+			.size([windowWidth, windowWidth])
+			.charge(-50)
+			.chargeDistance(100)
+			.linkStrength(0.01)
+			.start();
+			
+		var myLinks = getLinks(nodesDataUse);
+		
+		return myLinks;
+}
+
+function makeNodeList(nodeList) {
+	var tempNodeArray = []
+	for (var word of wordList) {
+		var nodeIndex = nodeList.map(function(e) { return e.word.toLowerCase(); }).indexOf(word.toLowerCase());
+		if (nodeIndex >= 0) {
+			tempNodeArray.push(nodeList[nodeIndex]);
+		}
+		else {
+			tempNodeArray.push({index: nodeList[0].index, word: "* "+word.toLowerCase()+" *", x: nodeList[0].x, y:nodeList[0].y});
+		}
+	}
+	return tempNodeArray;
+}
+
+function updateCircles(nodesData, force, myLinks){
 				           
         var link = panel.selectAll('.link')
-			.data(myLinks)
-			.enter().append('line')
+			.data(myLinks);
+			
+			link.enter().append('line')
 			.attr('class', 'link')
 			.attr("stroke",function(d) {return "hsl(120,"+(100-(d.value*20))+"%,50%)"});
-
+			
 		panel.selectAll("g").remove();
 		var nodes = panel.selectAll("g").data(nodesDataUse);
 		var nodeMom = nodes.enter().append("g");
 		nodeMom.append("rect")
 			.attr("fill", "white")
-			.attr("fill-opacity",0.8)
+			.attr("fill-opacity",0.6)
 			.attr("stroke","grey")
 			.attr("stroke-opacity",0.8)
-			.attr("stroke-width",2)
-            .attr("width",function(d) {return d.word.length * 10 + 2})
-            .attr("height","20px")
+			.attr("stroke-width",1)
+            .attr("width",function(d) {return d.word.length * 13 + 2})
+            .attr("height","25px")
             .attr("y",function(d) {return d.y;})
             .attr("x",function(d) {return d.x;})
             .call(force.drag);
 
         nodeMom.append("text")
         	.attr("class","wordTxt")
-        	.text(function(d) {return d.word})
+        	.text(function(d) {return d.word.toLowerCase()})
            .attr("fill","black")
            .attr("fill-opacity",0.7)
            .attr("text-anchor","middle")
-           .attr("x", function(d) {return d.x + d.word.length * 4 + 2; })
+           .attr("x", function(d) {return d.x + d.word.length * 6 + 3; })
            .attr("y", function(d) {return d.y + 10; })
            .attr("dy", ".35em")
            .call(force.drag);
@@ -138,7 +169,11 @@ function updateCircles(nodesData, force, myLinks){
 
                 
 		nodes.exit().remove();
+		link.exit().remove();
+		force.links(myLinks);
+		force.on("tick", tick);
 		force.start();
+		updateWindow();
 }
 
 	   function tick(e) {
@@ -146,8 +181,8 @@ function updateCircles(nodesData, force, myLinks){
 
 		  // Push nodes toward their designated focus.
 		  nodesDataUse.forEach(function(o, i) {
-			o.y += (nodesGoal[o.index].y - o.y) * k;
-			o.x += (nodesGoal[o.index].x - o.x) * k;
+			o.y += (nodesGoalUse[o.index].y - o.y) * k;
+			o.x += (nodesGoalUse[o.index].x - o.x) * k;
 		  });
 
 
@@ -157,7 +192,7 @@ function updateCircles(nodesData, force, myLinks){
 			  .attr("y", function(d) { return d.y; });
 			  
 			panel.selectAll(".wordTxt")
-			  .attr("x", function(d) { return d.x + d.word.length * 4 + 2; })
+			  .attr("x", function(d) { return d.x + d.word.length * 6 + 3; })
 			  .attr("y", function(d) { return d.y + 10; });
 			  
 			panel.selectAll(".link")
@@ -169,27 +204,16 @@ function updateCircles(nodesData, force, myLinks){
 		
 		    
     d3.select("button").on("click", function() {
-    	wordString = document.getElementById("gameText").value;
-    	wordList = wordString.split(" ");
-    	if (wordList.length > 1) {
-    		nodesDataUse = nodesData.filter(function(node) {return wordList.indexOf(node.word) >= 0 });
-    		nodesDataUse = nodesDataUse.sort(function(a,b){
-  				return wordList.indexOf(a.word) < wordList.indexOf(b.word) ? -1 : 1;
-			});
-    		var myLinks = getLinks(nodesDataUse);
-    		force.links(myLinks);
-    		force.start();
-    		updateCircles(nodesData,force, myLinks);
-    		}
+			loadNewSentence();
     	});
 		
-		function getLinks(nodesDataUse) {
-			var Links = [];
-			for (i = 0; i < nodesDataUse.length -1; i++) { 
-    			Links.push({source: nodesDataUse[i].index, target: nodesDataUse[i+1].index,value:i});
-			}
-			return Links;
+	function getLinks(nodesDataUse) {
+		var Links = [];
+		for (i = 0; i < nodesDataUse.length -1; i++) { 
+			Links.push({source: nodesDataUse[i].index, target: nodesDataUse[i+1].index,value:i});
 		}
+		return Links;
+	}
 		
 	setInterval(function() {
 		//force.stop()
