@@ -1,9 +1,17 @@
 <!DOCTYPE html>
+<head>
+    <title>Analyzing Sentiment in Literature with Deep Learning</title>
+</head>
 <script src="d3.v3.min.js" charset="utf-8"></script>
+<link href="bootstrap.css" rel="stylesheet">
+<link href="bootstrap-switch.css" rel="stylesheet">
+<script src="jquery.min.js"></script>
+<script src="bootstrap-switch.js"></script>
 <style>
 .bookBlock {
 	padding-top:75px; 
 	padding-bottom:75px;
+	padding-right: 30px;
 	min-height:300px;
 	overflow: auto;
 }
@@ -11,8 +19,8 @@
 	padding-left:50px; 
 	overflow: auto; 
 	padding-right:50px; 
-	max-width:800px; 
-	min-width:800px; 
+	max-width:900px; 
+	min-width:900px; 
 	float:left;
 }
 .blockText {
@@ -31,39 +39,164 @@ h2 {
 	font-family:'Helvetica';
 	margin-right:20px;"
 }
+.topText {
+    font-family:'Helvetica';
+    text-align:center;
+    padding-top:15px;
+}
+.title {
+    text-align:center;
+    padding-top:5px;
+}
+.floatingHeader {
+  position: fixed;
+  top: 0;
+  padding-top: 75px;
+  padding-right: 30px;
+  visibility: hidden;
+}
 </style>
 
 <body>
-
+<div class="title"><h3>Analyzing Sentiment in Literature with Deep Learning</h3></div>
+<div class="topText">
+Neural Network Type - 
+<input class="NNType" type="checkbox" name="NNType" checked=true data-size="small" data-on-text="CNN" data-off-text="RNN" data-off-color="success">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Classification Style - 
+<input class="CType" type="checkbox" name="CType" checked=true data-size="small" data-on-text="Smooth" data-off-text="Binary" data-on-color="info" data-off-color="warning">
+</div>
 </body>
 
 <script>
-	
-	var bookList;
-	d3.csv("master.csv",function(error,data) {
-		bookList = data;
-		var topContainer = d3.select("body");
-		var bookFill = topContainer.selectAll("bookBlock").data(bookList);
-		var bookMom = bookFill.enter().append("div").classed("bookBlock",true);
-				
-		var fillBlocks = bookMom.append("div").classed("blockHolder",true);
-		d3.selectAll(".blockHolder").each(function(d,i) {loadSquares(d3.select(this),d)});
-				
-		var fillMe = bookMom.append("div").classed("blockText",true);
-			fillMe.append("h1").html(function(d) {return d.Title});
-			fillMe.append("h2").html(function(d) {return d.Author});
-			fillMe.append("h3").classed("textExample",true);
-		
+	$("[name='NNType']").bootstrapSwitch();
+    $("[name='CType']").bootstrapSwitch();
+    
+    var urlParam = function(name, w){
+    w = w || window;
+    var rx = new RegExp('[\&|\?]'+name+'=([^\&\#]+)'),
+        val = w.location.search.match(rx);
+    return !val ? '':val[1];
+    }
+    var pageNum = urlParam('page');
+    var nntype = urlParam('nntype') == 'true' || urlParam('nntype') == '';
+    var cstyle = urlParam('cstyle') == 'true' || urlParam('cstyle') == '';
+    $('input[name="NNType"]').bootstrapSwitch('state',nntype,true);
+    $('input[name="CType"]').bootstrapSwitch('state',cstyle,true);
+    if (pageNum == "") {
+        pageNum = 1;
+    }
+    
+    function loadPage() {
+        var bookList;
+        var perPage = 6;
+        d3.csv("master.csv",function(error,data) {
+            bookList = data.slice((pageNum-1)*perPage,pageNum*perPage);
+            var topContainer = d3.select("body");
+            var bookFill = topContainer.selectAll("bookBlock").data(bookList);
+            var bookMom = bookFill.enter().append("div").classed("bookBlock",true).classed("persist-area",true);
+            
+            var fillBlocks = bookMom.append("div").classed("blockHolder",true);
+            d3.selectAll(".blockHolder").each(function(d,i) {loadSquares(d3.select(this),d)});
+            
+            var fillMe = bookMom.append("div").classed("blockText",true).append("div").classed("persist-header",true).classed("fixed-header",true);
+                fillMe.append("h1").html(function(d) {return d.Title});
+                fillMe.append("h2").html(function(d) {return d.Author});
+                fillMe.append("h3").classed("textExample",true);
+            var fillMe = bookMom.append("div").classed("blockText",true).append("div").classed("persist-header",true).classed("floatingHeader",true);
+                fillMe.append("h1").html(function(d) {return d.Title});
+                fillMe.append("h2").html(function(d) {return d.Author});
+                fillMe.append("h3").classed("textExample",true); 
+                
+            bookFill.exit().remove();
+            
+            var pages = Math.floor(data.length/perPage);
+            if (data.length % perPage > 0) {
+                pages += 1;
+            }
+            console.log(pages);
+            
+            var pagesArray = [];
 
-		});
+            for (var i = 1; i <= pages; i++) {
+               pagesArray.push(i);
+            }
+            console.log(pagesArray);
+            var pageHolder = topContainer.append("div").classed("topText",true).classed("pageHolder",true).append("ul").classed("pagination",true);
+            pageHolder.selectAll("pager")
+                .data(pagesArray).enter().append("li")
+                .classed("active",function(d) {if (pageNum == d) {return true} else {return false}})
+                .append("a")
+                .attr("href",function(d) {return "index.html?page="+d+"&nntype="+nntype+"&cstyle="+cstyle;})
+                .html(function(d) {return d;});
+            
+            });
+            
+		};
 	
+	loadPage();
+	
+	$('input[name="CType"]').on('switchChange.bootstrapSwitch', function(event, state) {
+      console.log(this); // DOM element
+      console.log(event); // jQuery event
+      console.log(state); // true | false
+      d3.selectAll(".pageHolder").remove();
+      d3.selectAll(".bookBlock").remove();
+      cstyle = !cstyle;
+      loadPage();
+    });
+    
+    $('input[name="NNType"]').on('switchChange.bootstrapSwitch', function(event, state) {
+      console.log(this); // DOM element
+      console.log(event); // jQuery event
+      console.log(state); // true | false
+      d3.selectAll(".bookBlock").remove();
+      d3.selectAll(".pageHolder").remove();
+      nntype = !nntype;
+      loadPage();
+    });
+    
+    function UpdateTableHeaders() {
+       $(".persist-area").each(function() {
+   
+           var el             = $(this),
+               offset         = el.offset(),
+               scrollTop      = $(window).scrollTop(),
+               floatingHeader = $(".floatingHeader", this)
+               fixedHeader    = $(".fixed-header",this)
+       
+           if ((scrollTop > offset.top) && (scrollTop + 150 < offset.top + el.height())) {
+               floatingHeader.css({
+                "visibility": "visible"
+               });
+               fixedHeader.css({
+                "visibility": "hidden"
+               });
+           } else {
+               floatingHeader.css({
+                "visibility": "hidden"
+               });      
+               fixedHeader.css({
+                "visibility": "visible"
+               });      
+           };
+       });
+    }
+
+
 	
 	function loadSquares(blockHolder,data) {
-		console.log(data.File);
 		var myData;
 		
 		var fillBlocks = blockHolder;
-		d3.csv(data.File, function(error,data1) {
+		var checked = $('input[name="NNType"]').bootstrapSwitch('state');
+		var toLoad;
+		if (checked == true) {
+		    toLoad = data.CNN_File;
+		}
+		else {
+		    toLoad = data.RNN_File;
+		}
+		d3.csv(toLoad+"?"+ Math.floor(Math.random() * 1000), function(error,data1) {
 		myData = data1;
 		
 			fillBlocks.selectAll("div").data(myData).enter().append("div")
@@ -77,24 +210,54 @@ h2 {
 				d3.select(this).style("background-color","white");
 				var displayTxt = d3.select(this).data()[0]["Text"];
 				var colorToSet = giveColor(d3.select(this).data()[0]);
-				d3.select(this.parentNode.parentNode).select(".textExample").html("..."+displayTxt.slice(0,200)+"...")
+				d3.select(this.parentNode.parentNode).selectAll(".textExample").html("..."+displayTxt.slice(0,200)+"...")
 					.style("color", colorToSet);
     			
     		});
     		
     		d3.selectAll(".block").on("mouseleave", function() {
     			d3.select(this).transition().delay(100).duration(500).style("background-color",function(d) {return giveColor(d)});
-    			d3.select(this.parentNode.parentNode).select(".textExample").html("");
+    			d3.select(this.parentNode.parentNode).selectAll(".textExample").html("");
     		});
 				
 			});
 	}
         
     function giveColor(d) {
-    	if (d.Sentiment == 1) {
-    		return "blue";
-    	}
-    	else { return "red";}
+        var checked = $('input[name="CType"]').bootstrapSwitch('state');
+        if (checked == true) {
+            var color = d3.scale.linear()
+            .domain([-6, 6])
+            .range(["red", "DodgerBlue"]);
+
+            return color(d.Cont_Sentiment);
+        }
+        else {
+        	if (d.Binary_Sentiment == 1.0) {
+        		return "blue";
+        	}
+        	else { return "red";}
+        }
     }
+    
+        // DOM Ready      
+    $(function() {
+
+       var clonedHeaderRow;
+
+       $(".persist-area").each(function() {
+           clonedHeaderRow = $(".persist-header", this);
+           clonedHeaderRow
+             .before(clonedHeaderRow.clone())
+             .css("width", clonedHeaderRow.width())
+             .addClass("floatingHeader");
+         
+       });
+   
+       $(window)
+        .scroll(UpdateTableHeaders)
+        .trigger("scroll");
+   
+    });
 
 </script>
