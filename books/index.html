@@ -58,7 +58,7 @@ h2 {
 </style>
 
 <body>
-<div class="title"><h3>Analyzing Sentiment in Literature with Deep Learning</h3></div>
+<div class="title"><h3>Exploring Sentiment in Literature with Deep Learning<a href="https://medium.com/p/30366aff578e">*</a></h3></div>
 <div class="topText">
 Neural Network Type - 
 <input class="NNType" type="checkbox" name="NNType" checked=true data-size="small" data-on-text="CNN" data-off-text="RNN" data-off-color="success">
@@ -88,7 +88,7 @@ Neural Network Type -
     
     function loadPage() {
         var bookList;
-        var perPage = 6;
+        var perPage = 5;
         d3.csv("master.csv",function(error,data) {
             bookList = data.slice((pageNum-1)*perPage,pageNum*perPage);
             var topContainer = d3.select("body");
