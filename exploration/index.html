@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+
+<script src="d3.v3.min.js" charset="utf-8"></script>
+<link href="bootstrap.css" rel="stylesheet">
+<link href="bootstrap-switch.css" rel="stylesheet">
+<script src="jquery.min.js"></script>
+<script src="bootstrap-switch.js"></script>
+<script src="math.min.js"></script>
+
+
+
+<style>
+
+.holder {
+  float: left;
+  top: 100px;
+  margin-right: 50px;
+  bottom: 0;
+  margin-left: 50px;
+  width: 400px;
+}
+
+body {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.x.axis path {
+  display: none;
+}
+
+.focus circle {
+  fill: none;
+  stroke: steelblue;
+}
+
+.y0line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.bline {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.y1line {
+  fill: none;
+  stroke: green;
+  stroke-width: 1.5px;
+}
+
+h1 {
+text-align: center;
+}
+
+h4 {
+text-align: center;
+}
+
+.overlay {
+  fill: none;
+  pointer-events: all;
+}
+
+.blockText {
+    -webkit-user-select: none;
+    -moz-user-select: none; 
+    -ms-user-select: none;
+    margin-left: 0 auto;
+    margin-right: 0 auto;
+}
+
+</style>
+<title>Reinforcement Learning Exploration</title>
+<body>
+<h1>Reinforcement Learning Exploration Strategies<a href="https://medium.com/p/d3a97b7cceaf">*</a></h1>
+<div style="width:1000px;; margin-left: auto; margin-right: auto; margin-bottom:25px;  overflow:auto; ">
+
+<div  style="padding-top:10px; padding-bottom:20px; margin:auto; width:650px;" >
+    <div style="padding-right:20px; padding-left:20px; width:200px; float:left;">
+        <button type="button btn-lg" data-size="large" onclick="newQ()" class="btn btn-lg btn-default">Sample Environment</button>
+    </div>
+    
+    <div style="padding-right:20px; padding-left:80px; float:left;">
+        <div style="font-size:20px; float:left; padding-right:20px;">Bayesian Approach</div>
+        <div style="margin-top:-3px;">
+            <button type="button btn-md" data-size="normal" onclick="newB()" class="btn btn-default btn-sm">Sample Network</button>
+        </div>
+        <div style="margin-top:10px;">
+            <div style="float:left; font-size:15px; padding-right:15px;">Certain</div>
+            <div style="float:left;"><input class="cslide" id="cS" onchange="updateCertainty(this.value)" style="width:200px; padding-top:5px;" type="range" id="myRange" value="50"></div>
+            <div style="float:left; font-size:15px; padding-left:15px;">Uncertain</div>
+        </div>
+    </div>
+
+</div>
+<div><br><br></div>
+<div class="holder">
+    <h3>Greedy Approach</h3>
+    <svg class="Qholder">
+        <g>
+            <text x="165" y="210" dy="1em" class="blockText" font-size="12pt">Q Values</text>
+            <line x1="5" y1="200" x2="405" y2="200" style="stroke:LightGray ;stroke-width:2" />
+            <g>
+                <rect class="Gabox0" width="100px" height="170px" transform="translate(5,30)" fill="steelblue" fill-opacity="0.0"></rect>
+                <rect class="Gabox1" width="100px" height="170px" transform="translate(105,30)" fill="steelblue" fill-opacity="0.0"></rect>
+                <rect class="Gabox2" width="100px" height="170px" transform="translate(205,30)" fill="steelblue" fill-opacity="0.0"></rect>
+                <rect class="Gabox3" width="100px" height="170px" transform="translate(305,30)" fill="steelblue" fill-opacity="0.0"></rect>
+                <line class="Galine" x1="105" y1="198" x2="205" y2="198" style="stroke:steelblue ;stroke-width:5" />
+            </g>
+            <g>
+                <image width="50" height="50" transform-origin="center" transform="translate(30,145)" href="./assets/arrow.png"></image>
+                <image width="50" height="50" transform="translate(130,145),rotate(180 25 25)" href="./assets/arrow.png" style="transform-origin: center center 0px;"></image>
+                <image width="50" height="50" transform-origin="center" transform="translate(230,145),rotate(-90 25 25)" href="./assets/arrow.png"></image>
+                <image width="50" height="50" transform-origin="center" transform="translate(330,145),rotate(90 25 25)" href="./assets/arrow.png"></image>
+            </g>
+            <circle class="a0" cx="55" cy="75" r="1" stroke="gray" stroke-width="1px" fill-opacity="0.5" fill="gray"><title>0</title></circle>
+            <circle cx="155" class="a1" cy="75" r="1" stroke="gray" stroke-width="1px" fill-opacity="0.5" fill="gray"><title>0</title></circle>
+            <circle cx="255" class="a2" cy="75" r="1" stroke="gray" stroke-width="1px" fill-opacity="0.5" fill="gray"><title>0</title></circle>
+            <circle cx="355" class="a3" cy="75" r="1" stroke="gray" stroke-width="1px" fill-opacity="0.5" fill="gray"><title>0</title></circle>
+            <text class="a0t blockText" text-anchor="middle" x="55" y="125" dy="1em" font-size="10pt">0.0</text>
+            <text class="a1t blockText" text-anchor="middle" x="155" y="125" dy="1em" font-size="10pt">0.0</text>
+            <text class="a2t blockText" text-anchor="middle" x="255" y="125" dy="1em" font-size="10pt">0.0</text>
+            <text class="a3t blockText" text-anchor="middle" x="355" y="125" dy="1em" font-size="10pt">0.0</text>
+        </g>
+    </svg>
+</div>
+
+<div class="holder">
+    <h3>Random Approach</h3>
+    <svg class="Qholder">
+        <g>
+            <text x="165" y="210" dy="1em" class="blockText" font-size="12pt">Q Values</text>
+            <line x1="5" y1="200" x2="405" y2="200" style="stroke:LightGray ;stroke-width:2" />
+            <g>
+                <rect class="Rabox0" width="100px" height="170px" transform="translate(5,30)" fill="steelblue" fill-opacity="0.0"></rect>
+                <rect class="Rabox1" width="100px" height="170px" transform="translate(105,30)" fill="steelblue" fill-opacity="0.0"></rect>
+                <rect class="Rabox2" width="100px" height="170px" transform="translate(205,30)" fill="steelblue" fill-opacity="0.0"></rect>
+                <rect class="Rabox3" width="100px" height="170px" transform="translate(305,30)" fill="steelblue" fill-opacity="0.0"></rect>
+                <line class="Raline" x1="105" y1="198" x2="205" y2="198" style="stroke:steelblue ;stroke-width:5" />
+            </g>
+            <g>
+                <image width="50" height="50" transform-origin="center" transform="translate(30,145)" href="./assets/arrow.png"></image>
+                <image width="50" height="50" transform="translate(130,145),rotate(180 25 25)" href="./assets/arrow.png" style="transform-origin: center center 0px;"></image>
+                <image width="50" height="50" transform-origin="center" transform="translate(230,145),rotate(-90 25 25)" href="./assets/arrow.png"></image>
+                <image width="50" height="50" transform-origin="center" transform="translate(330,145),rotate(90 25 25)" href="./assets/arrow.png"></image>
+            </g>
+            <circle class="a0" cx="55" cy="75" r="1" stroke="gray" stroke-width="1px" fill-opacity="0.5" fill="gray"><title>0</title></circle>
+            <circle cx="155" class="a1" cy="75" r="1" stroke="gray" stroke-width="1px" fill-opacity="0.5" fill="gray"><title>0</title></circle>
+            <circle cx="255" class="a2" cy="75" r="1" stroke="gray" stroke-width="1px" fill-opacity="0.5" fill="gray"><title>0</title></circle>
+            <circle cx="355" class="a3" cy="75" r="1" stroke="gray" stroke-width="1px" fill-opacity="0.5" fill="gray"><title>0</title></circle>
+            <text class="a0t blockText" text-anchor="middle" x="55" y="125" dy="1em" font-size="10pt">0.0</text>
+            <text class="a1t blockText" text-anchor="middle" x="155" y="125" dy="1em" font-size="10pt">0.0</text>
+            <text class="a2t blockText" text-anchor="middle" x="255" y="125" dy="1em" font-size="10pt">0.0</text>
+            <text class="a3t blockText" text-anchor="middle" x="355" y="125" dy="1em" font-size="10pt">0.0</text>
+        </g>
+    </svg>
+</div>
+
+<div class="holder">
+    <h3>E-greedy Approach</h3>
+    <svg class="Qholder">
+        <g>
+            <text x="165" y="210" dy="1em" class="blockText" font-size="12pt">Q Values</text>
+            <line x1="5" y1="200" x2="405" y2="200" style="stroke:LightGray ;stroke-width:2" />
+            <g>
+                <rect class="Eabox0" width="100px" height="170px" transform="translate(5,30)" fill="steelblue" fill-opacity="0.0"></rect>
+                <rect class="Eabox1" width="100px" height="170px" transform="translate(105,30)" fill="steelblue" fill-opacity="0.0"></rect>
+                <rect class="Eabox2" width="100px" height="170px" transform="translate(205,30)" fill="steelblue" fill-opacity="0.0"></rect>
+                <rect class="Eabox3" width="100px" height="170px" transform="translate(305,30)" fill="steelblue" fill-opacity="0.0"></rect>
+                <line class="Ealine" x1="105" y1="198" x2="205" y2="198" style="stroke:steelblue ;stroke-width:5" />
+            </g>
+            <g>
+                <image width="50" height="50" transform-origin="center" transform="translate(30,145)" href="./assets/arrow.png"></image>
+                <image width="50" height="50" transform="translate(130,145),rotate(180 25 25)" href="./assets/arrow.png" style="transform-origin: center center 0px;"></image>
+                <image width="50" height="50" transform-origin="center" transform="translate(230,145),rotate(-90 25 25)" href="./assets/arrow.png"></image>
+                <image width="50" height="50" transform-origin="center" transform="translate(330,145),rotate(90 25 25)" href="./assets/arrow.png"></image>
+            </g>
+            <circle class="a0" cx="55" cy="75" r="1" stroke="gray" stroke-width="1px" fill-opacity="0.5" fill="gray"><title>0</title></circle>
+            <circle cx="155" class="a1" cy="75" r="1" stroke="gray" stroke-width="1px" fill-opacity="0.5" fill="gray"><title>0</title></circle>
+            <circle cx="255" class="a2" cy="75" r="1" stroke="gray" stroke-width="1px" fill-opacity="0.5" fill="gray"><title>0</title></circle>
+            <circle cx="355" class="a3" cy="75" r="1" stroke="gray" stroke-width="1px" fill-opacity="0.5" fill="gray"><title>0</title></circle>
+            <text class="a0t blockText" text-anchor="middle" x="55" y="125" dy="1em" font-size="10pt">0.0</text>
+            <text class="a1t blockText" text-anchor="middle" x="155" y="125" dy="1em" font-size="10pt">0.0</text>
+            <text class="a2t blockText" text-anchor="middle" x="255" y="125" dy="1em" font-size="10pt">0.0</text>
+            <text class="a3t blockText" text-anchor="middle" x="355" y="125" dy="1em" font-size="10pt">0.0</text>
+        </g>
+    </svg>
+    <div>
+        <span style="font-size:18px; float:left; padding-right:15px;">ε:  </span> <input class="eslide" id="eS" onchange="updateEpsilon(this.value)" style="width:350px; float:left; padding-top:5px;" type="range" id="myRange" value="50">
+    </div>
+
+</div>
+
+<div class="holder">
+    <h3>Boltzmann Approach</h3>
+    <svg class="Qholder">
+        <g>
+            <text x="165" y="210" dy="1em" class="blockText" font-size="12pt">Q Values</text>
+            <line x1="5" y1="200" x2="405" y2="200" style="stroke:LightGray ;stroke-width:2" />
+            <g>
+                <rect class="Babox0" width="100px" height="170px" transform="translate(5,30)" fill="steelblue" fill-opacity="0.0"></rect>
+                <rect class="Babox1" width="100px" height="170px" transform="translate(105,30)" fill="steelblue" fill-opacity="0.0"></rect>
+                <rect class="Babox2" width="100px" height="170px" transform="translate(205,30)" fill="steelblue" fill-opacity="0.0"></rect>
+                <rect class="Babox3" width="100px" height="170px" transform="translate(305,30)" fill="steelblue" fill-opacity="0.0"></rect>
+                <line class="Baline" x1="105" y1="198" x2="205" y2="198" style="stroke:steelblue ;stroke-width:5" />
+            </g>
+            <g>
+                <image width="50" height="50" transform-origin="center" transform="translate(30,145)" href="./assets/arrow.png"></image>
+                <image width="50" height="50" transform="translate(130,145),rotate(180 25 25)" href="./assets/arrow.png" style="transform-origin: center center 0px;"></image>
+                <image width="50" height="50" transform-origin="center" transform="translate(230,145),rotate(-90 25 25)" href="./assets/arrow.png"></image>
+                <image width="50" height="50" transform-origin="center" transform="translate(330,145),rotate(90 25 25)" href="./assets/arrow.png"></image>
+            </g>
+            <circle class="a0" cx="55" cy="75" r="1" stroke="gray" stroke-width="1px" fill-opacity="0.5" fill="gray"><title>0</title></circle>
+            <circle cx="155" class="a1" cy="75" r="1" stroke="gray" stroke-width="1px" fill-opacity="0.5" fill="gray"><title>0</title></circle>
+            <circle cx="255" class="a2" cy="75" r="1" stroke="gray" stroke-width="1px" fill-opacity="0.5" fill="gray"><title>0</title></circle>
+            <circle cx="355" class="a3" cy="75" r="1" stroke="gray" stroke-width="1px" fill-opacity="0.5" fill="gray"><title>0</title></circle>
+            <text class="a0t blockText" text-anchor="middle" x="55" y="125" dy="1em" font-size="10pt">0.0</text>
+            <text class="a1t blockText" text-anchor="middle" x="155" y="125" dy="1em" font-size="10pt">0.0</text>
+            <text class="a2t blockText" text-anchor="middle" x="255" y="125" dy="1em" font-size="10pt">0.0</text>
+            <text class="a3t blockText" text-anchor="middle" x="355" y="125" dy="1em" font-size="10pt">0.0</text>
+        </g>
+    </svg>
+    <div>
+        <span style="font-size:18px; float:left; padding-right:15px;">τ:  </span> <input class="bslide" id="bS" onchange="updateTau(this.value)" style="width:350px; float:left; padding-top:5px;" type="range" id="myRange" value="50">
+    </div>
+</div>
+</div>
+<div class="blockText" style="text-align:center; margin-top:25px;"><p>Arthur Juliani - 2016</p></div>
+
+</body>
+<script>
+
+$("[name='NNType']").bootstrapSwitch();
+
+var q_array = [0,0,0,0];
+var fixed_q = q_array;
+
+var margin = {top: 50, right: 20, bottom: 30, left: 100},
+    width = 500 - margin.left - margin.right,
+    height = 300 - margin.top - margin.bottom;
+    
+var actionSVG = d3.selectAll(".Qholder")
+        .attr("width", 400)
+        .attr("height", 240);
+
+function returnColor(number) {
+    if (number < 0) {
+        return "red";
+    }
+    else { return "green";}
+}
+
+function returnSize(number) {
+    var toReturn = Math.abs(number);
+    toReturn = toReturn *30;
+    if (toReturn > 35) {toReturn = 35;}
+    if (toReturn < 5) {toReturn = 5;}
+    return toReturn;
+
+}
+
+function getLine(action) {
+    return [5 + 100*action,105 + 100*action];
+}
+
+function getSquare(action) {
+    return 5 + 100*action;
+
+}
+
+function labelAction(action) {
+    if (action == 0) {return "Up";}
+    if (action == 1) {return "Down";}
+    if (action == 2) {return "Left";}
+    if (action == 3) {return "Right";}
+}
+
+function getEGreedy(e,max_q) {
+    if (Math.random() > e) {
+        return max_q;
+    }
+    else {
+        return Math.floor((Math.random() * 4));
+    }
+}
+
+newQ();
+
+function updateEpsilon(e) {
+    e = parseInt(e) / 100;
+    Eprobabilities = [e/4,e/4,e/4,e/4];
+    Eprobabilities[max_q] = 1-e + (e/4);
+    Eprobabilities.forEach(function(d, i) { 
+        d3.select(".Eabox"+i.toString()).transition().duration(200)
+        .attr("height",d * 170.0)
+        .attr("fill-opacity",0.25)
+        .attr("y", 170 - d * 170);
+         });
+    
+    var ElinePos = getLine(getEGreedy(e,max_q));
+    d3.select(".Ealine").transition().duration(200).attr('x1',ElinePos[0]).attr('x2',ElinePos[1]);
+
+}
+
+function updateTau(t) {
+    t = (parseInt(t) + 1) / 100;
+    Bprobabilities = math.divide(math.exp(math.divide(q_array,t)),math.sum(math.exp(math.divide(q_array,t))))
+    Bprobabilities.forEach(function(d, i) { 
+        d3.select(".Babox"+i.toString()).transition().duration(200)
+        .attr("height",d * 170.0)
+        .attr("fill-opacity",0.25)
+        .attr("y", 170 - d * 170);
+         });
+    var BlinePos = getLine(Math.floor((Math.random() * 4)));
+    d3.select(".Baline").transition().duration(200).attr('x1',BlinePos[0]).attr('x2',BlinePos[1]);
+
+
+}
+
+function updateCertainty(cer) {
+    newB();
+
+}
+
+function newQ() {
+    q_array = [Math.random()*2 - 1 ,Math.random() * 2 - 1,Math.random() * 2 - 1,Math.random() * 2 - 1];
+    fixed_q = q_array;
+    updateData();
+}
+
+function newB() {
+    var uncertainty = parseInt(document.getElementById("cS").value) / 200;
+    q_array = [fixed_q[0] + math.random(-uncertainty,uncertainty),fixed_q[1] + math.random(-uncertainty,uncertainty),fixed_q[2] + math.random(-uncertainty,uncertainty),fixed_q[3] + math.random(-uncertainty,uncertainty)];
+    updateData();
+}
+
+function updateData() {
+    currentState = 0;
+    d3.csv('log4209.csv', function(error,data) {    
+    
+    max_q = q_array.indexOf(Math.max(...q_array));
+    Gprobabilities = [0,0,0,0];
+    Gprobabilities[max_q] = 1.0;
+    Gprobabilities.forEach(function(d, i) { 
+        d3.select(".Gabox"+i.toString()).transition().duration(200)
+        .attr("height",d * 170.0)
+        .attr("fill-opacity",0.25)
+        .attr("y", 170 - d * 170);
+    
+         });
+    data[0] = {A0:q_array[0],A1:q_array[1],A2:q_array[2],A3:q_array[3],ACTION:max_q};
+    var GlinePos = getLine(max_q);
+    d3.select(".Galine").transition().duration(200).attr('x1',GlinePos[0]).attr('x2',GlinePos[1]);
+    
+    Rprobabilities = [.25,.25,.25,.25];
+    Rprobabilities.forEach(function(d, i) { 
+        d3.select(".Rabox"+i.toString()).transition().duration(200)
+        .attr("height",d * 170.0)
+        .attr("fill-opacity",0.25)
+        .attr("y", 170 - d * 170);
+         });
+    var RlinePos = getLine(Math.floor((Math.random() * 4)));
+    d3.select(".Raline").transition().duration(200).attr('x1',RlinePos[0]).attr('x2',RlinePos[1]);
+
+    var e = parseInt(document.getElementById("eS").value) / 100;
+    Eprobabilities = [e/4,e/4,e/4,e/4];
+    Eprobabilities[max_q] = 1-e + (e/4);
+    Eprobabilities.forEach(function(d, i) { 
+        d3.select(".Eabox"+i.toString()).transition().duration(200)
+        .attr("height",d * 170.0)
+        .attr("fill-opacity",0.25)
+        .attr("y", 170 - d * 170);
+         });
+    
+    var ElinePos = getLine(getEGreedy(e,max_q));
+    d3.select(".Ealine").transition().duration(200).attr('x1',ElinePos[0]).attr('x2',ElinePos[1]);
+    
+    var t = (parseInt(document.getElementById("bS").value) + 1) / 100;
+    Bprobabilities = math.divide(math.exp(math.divide(q_array,t)),math.sum(math.exp(math.divide(q_array,t))))
+    B_pick = q_array.indexOf(math.pickRandom(q_array,Bprobabilities));
+    console.log(Bprobabilities);
+    Bprobabilities.forEach(function(d, i) { 
+        d3.select(".Babox"+i.toString()).transition().duration(200)
+        .attr("height",d * 170.0)
+        .attr("fill-opacity",0.25)
+        .attr("y", 170 - d * 170);
+         });
+    var BlinePos = getLine(B_pick);
+    d3.select(".Baline").transition().duration(200).attr('x1',BlinePos[0]).attr('x2',BlinePos[1]);
+
+    
+    var A0C = d3.selectAll(".a0")
+        A0C.transition().duration(200).attr('r',returnSize(data.slice(currentState)[0].A0))
+            .attr("fill",returnColor(data.slice(currentState)[0].A0))
+            .attr("stroke",returnColor(data.slice(currentState)[0].A0));
+        A0C.select("title").text(data.slice(currentState)[0].A0);
+        d3.selectAll(".a0t").text(Number(data.slice(currentState)[0].A0).toFixed(2));
+    
+    var A1C = d3.selectAll(".a1")
+        A1C.transition().duration(200).attr('r',returnSize(data.slice(currentState)[0].A1))
+            .attr("fill",returnColor(data.slice(currentState)[0].A1))
+            .attr("stroke",returnColor(data.slice(currentState)[0].A1));
+        A1C.select("title").text(data.slice(currentState)[0].A1);
+        d3.selectAll(".a1t").text(Number(data.slice(currentState)[0].A1).toFixed(2));
+    
+    var A2C = d3.selectAll(".a2")
+        A2C.transition().duration(200).attr('r',returnSize(data.slice(currentState)[0].A2))
+            .attr("fill",returnColor(data.slice(currentState)[0].A2))
+            .attr("stroke",returnColor(data.slice(currentState)[0].A2));
+        A2C.select("title").text(data.slice(currentState)[0].A2);
+        d3.selectAll(".a2t").text(Number(data.slice(currentState)[0].A2).toFixed(2));
+    
+    var A3C = d3.selectAll(".a3")
+        A3C.transition().duration(200).attr('r',returnSize(data.slice(currentState)[0].A3))
+            .attr("fill",returnColor(data.slice(currentState)[0].A3))
+            .attr("stroke",returnColor(data.slice(currentState)[0].A3));
+        A3C.select("title").text(data.slice(currentState)[0].A3);
+        d3.selectAll(".a3t").text(Number(data.slice(currentState)[0].A3).toFixed(2));
+    
+    });
+
+        
+}
+
+
+</script>
